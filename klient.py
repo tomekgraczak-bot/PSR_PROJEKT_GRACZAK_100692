@@ -1,34 +1,67 @@
+
 import socket
-import getpass
 
-polaczenie = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-polaczenie.connect(("127.0.0.1", 8001))
-print("polaczono z magazynem")
+klient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+klient.connect(("127.0.0.1", 8001))
 
-print("Dostepne komendy:")
-print("login")
-print("wyloguj")
-print("stan")
-print("kup klawiatura (tylko klient)")
-print("kup mysz (tylko klient)")
-print("kup monitor (tylko klient)")
-print("zamow klawiatura (tylko admin)")
-print("zamow mysz (tylko admin)")
-print("zamow monitor (tylko admin)")
-print("koniec")
+print("Polaczono z magazynem")
 
 while True:
-    komenda = input("Komenda: ")
-    if komenda == "koniec":
-        break
-    if komenda == "login":
-        login = input("Login: ")
-        polaczenie.sendall(login.encode())
-        haslo = getpass.getpass("Haslo: ")
-        polaczenie.sendall(haslo.encode())
-    if komenda != "login":
-        polaczenie.sendall(komenda.encode())
-    odpowiedz = polaczenie.recv(1024)
-    print(odpowiedz.decode(), end="")
+    rola = input("Kim jestes? (user/admin): ")
 
-polaczenie.close()
+    if rola == "user" or rola == "admin":
+        klient.sendall(rola.encode())
+        print(klient.recv(4096).decode())
+
+        if rola == "user":
+            print("Komendy:\nstan\nkup klawiatura\nkup mysz\nkup monitor\nwyloguj\nkoniec")
+
+        if rola == "admin":
+            print("Komendy:\nstan\nzamow klawiatura\nzamow mysz\nzamow monitor\nwyloguj\nkoniec")
+
+        while True:
+            komenda = input("Komenda: ")
+
+            if komenda == "koniec":
+                klient.close()
+                quit()
+
+            if komenda == "wyloguj":
+                klient.sendall("wyloguj".encode())
+                print(klient.recv(4096).decode())
+                break
+
+            if komenda == "stan":
+                klient.sendall("stan".encode())
+                print(klient.recv(4096).decode())
+
+                if rola == "admin":
+                    klient.sendall("csv".encode())
+                    print(klient.recv(4096).decode())
+
+            if komenda == "kup klawiatura" or komenda == "kup mysz" or komenda == "kup monitor":
+                if rola == "user":
+                    klient.sendall(komenda.encode())
+                    print(klient.recv(4096).decode())
+
+                    dostawa = input("> ")
+                    klient.sendall(dostawa.encode())
+                    print(klient.recv(4096).decode())
+
+                if rola != "user":
+                    print("Tylko user moze kupowac")
+
+            if komenda == "zamow klawiatura" or komenda == "zamow mysz" or komenda == "zamow monitor":
+                if rola == "admin":
+                    klient.sendall(komenda.encode())
+                    print(klient.recv(4096).decode())
+
+                    dostawa = input("> ")
+                    klient.sendall(dostawa.encode())
+                    print(klient.recv(4096).decode())
+
+                if rola != "admin":
+                    print("Tylko admin moze zamawiac")
+
+    else:
+        print("Nieznany uzytkownik")
